@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Data (keep only small samples in data/raw)
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/sample_*.csv
+data/processed/*
+!data/processed/.gitkeep
+
+# DuckDB database files
+*.duckdb
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

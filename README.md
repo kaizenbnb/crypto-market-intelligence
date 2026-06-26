@@ -12,6 +12,20 @@ The question it answers is simple:
 
 > Which assets show unusual activity, volatility expansion or liquidity stress compared with their recent baseline?
 
+## Results
+
+These charts are generated from live public Binance data by a GitHub Action and refreshed automatically, so the figures below reflect a real recent window rather than mock data.
+
+| Realized volatility by asset | Volume anomalies |
+| --- | --- |
+| ![Volatility by asset](outputs/charts/volatility_by_asset.png) | ![Volume anomaly score](outputs/charts/volume_anomaly_score.png) |
+
+| Volume by trading session | Market health score |
+| --- | --- |
+| ![Session volume heatmap](outputs/charts/session_volume_heatmap.png) | ![Market health score](outputs/charts/market_health_score.png) |
+
+A short written read of each run lives in [outputs/summary_report.md](outputs/summary_report.md).
+
 ## What it does
 
 - Pulls public 1 hour candlestick (kline) data for five major pairs.
@@ -32,7 +46,7 @@ The question it answers is simple:
 | SOLUSDT | High beta asset |
 | XRPUSDT | Retail heavy asset |
 
-Timeframe: 1 hour candles over roughly 90 days. Enough to surface hourly patterns, volatility regimes, volume outliers and session behaviour without building a monster.
+Timeframe: 1 hour candles over a recent window. Enough to surface hourly patterns, volatility regimes, volume outliers and session behaviour without building a monster.
 
 ## Skills demonstrated
 
@@ -42,7 +56,7 @@ Timeframe: 1 hour candles over roughly 90 days. Enough to surface hourly pattern
 - Market microstructure intuition (liquidity, taker flow, sessions).
 - Statistical anomaly detection.
 - Data visualization and clear business reporting.
-- Reproducible project structure.
+- Reproducible project structure with CI that runs the analysis end to end.
 
 ## Data source
 
@@ -72,6 +86,7 @@ sql/
 src/
   download_binance_data.py
   load_to_duckdb.py
+  generate_charts.py
   utils.py
 
 notebooks/
@@ -84,34 +99,29 @@ outputs/
     session_volume_heatmap.png
     market_health_score.png
   summary_report.md
+
+.github/workflows/
+  build-charts.yml
 ```
 
-## How to run
+## How the charts stay fresh
+
+A GitHub Action (`.github/workflows/build-charts.yml`) runs `src/generate_charts.py`, which downloads live Binance data, runs the SQL and regenerates the four PNG charts. It runs on demand and on a weekly schedule, then commits the updated charts back to the repo.
+
+## How to run it yourself
 
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Download public Binance kline data
+# 2. Build the charts from live Binance data in one step
+python src/generate_charts.py
+
+# Or run the full pipeline by hand and explore it in the notebook:
 python src/download_binance_data.py
-
-# 3. Load the data into DuckDB
 python src/load_to_duckdb.py
-
-# 4. Open the notebook and run all cells to build the charts
 jupyter notebook notebooks/01_market_intelligence_analysis.ipynb
 ```
-
-The four charts in `outputs/charts/` are generated when you run the notebook against fresh data, so the figures always match the period you downloaded.
-
-## Charts produced
-
-| Chart | What it shows |
-| --- | --- |
-| volatility_by_asset.png | Realized volatility per asset |
-| volume_anomaly_score.png | Pairs ranked by volume z-score |
-| session_volume_heatmap.png | Volume by UTC hour and symbol |
-| market_health_score.png | Composite health score per asset |
 
 ## Market health score
 
@@ -121,17 +131,16 @@ A simple, explainable score per asset. It is not meant to be perfect, it is mean
 market_health_score =
     100
     - volatility_penalty
-    - abnormal_volume_penalty
-    - low_liquidity_penalty
-    + trade_activity_score
+    + liquidity_reward
+    + trade_activity_reward
 ```
 
-The reasoning behind each component is documented in the notebook and in the summary report.
+The reasoning behind each component is documented in the SQL and in the notebook.
 
 ## Scope and limitations
 
 - This is market intelligence, not trading advice.
-- The sample is a fixed historical window, so results describe that period only.
+- The sample is a recent historical window, so results describe that period only.
 - The health score is a heuristic, useful for monitoring and triage rather than prediction.
 
 ## Author
